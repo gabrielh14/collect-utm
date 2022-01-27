@@ -2,7 +2,7 @@
 // Script stores the user's UTM information in cookies and uses the information to populate the utm fields in the form
 // Using JavaScript with jQuery
 
-jQuery( document ).ready(function() {
+$( document ).ready(function() {
     // check the url for UTM
     if(window.location.href.indexOf("utm") > -1){
         // Collect URL Parameters
@@ -21,11 +21,11 @@ jQuery( document ).ready(function() {
     
         // Store Cookie
     
-        document.cookie = "utm_source=" + source;
-        document.cookie = "utm_medium=" + medium;
-        document.cookie = "utm_campaign=" + campaign;
-        document.cookie = "utm_content=" + content;
-        document.cookie = "utm_term=" + term;
+        document.cookie = "utm_source=" + source + ";path=/";
+        document.cookie = "utm_medium=" + medium + ";path=/";
+        document.cookie = "utm_campaign=" + campaign + ";path=/";
+        document.cookie = "utm_content=" + content + ";path=/";
+        document.cookie = "utm_term=" + term + ";path=/";
     }
     
     // Cookie request function
@@ -51,10 +51,10 @@ jQuery( document ).ready(function() {
     
     // Collect and store UTM via cookies
 
-    jQuery("#utm_source").val(valor_cookie('utm_source'));
-    jQuery("#utm_medium").val(valor_cookie('utm_medium'));
-    jQuery("#utm_campaign").val(valor_cookie('utm_campaign'));
-    jQuery("#utm_term").val(valor_cookie('utm_term'));
-    jQuery("#utm_content").val(valor_cookie('utm_content'));
+    $("#utm_source").val(valor_cookie('utm_source'));
+    $("#utm_medium").val(valor_cookie('utm_medium'));
+    $("#utm_campaign").val(valor_cookie('utm_campaign'));
+    $("#utm_term").val(valor_cookie('utm_term'));
+    $("#utm_content").val(valor_cookie('utm_content'));
     
 });
