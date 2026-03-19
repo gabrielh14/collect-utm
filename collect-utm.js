@@ -1,60 +1,98 @@
-// UTM cookies by Gabriel Oliveira
-// Script stores the user's UTM information in cookies and uses the information to populate the utm fields in the form
-// Using JavaScript with jQuery
+// UTM Cache by Gabriel Oliveira
+// Captures UTM parameters from the URL and stores them in cookies so they persist
+// across multiple pages. On any page that has a form, reads the cookies and fills
+// the hidden UTM fields automatically — even when the visitor landed on a different
+// page that originally had the UTM parameters in the URL.
+//
+// Supports both plain JavaScript and jQuery environments.
+// Cookie expiration defaults to 30 days so campaign data survives browser sessions.
 
-$( document ).ready(function() {
-    // check the url for UTM
-    if(window.location.href.indexOf("utm") > -1){
-        // Collect URL Parameters
-        function getParameterByName(name) {
-            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-            var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-                results = regex.exec(location.search);
-            return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-        }
-    
-        var source = getParameterByName('utm_source');
-        var medium = getParameterByName('utm_medium');
-        var campaign = getParameterByName('utm_campaign');
-        var content = getParameterByName('utm_content');
-        var term = getParameterByName('utm_term');
-    
-        // Store Cookie
-    
-        document.cookie = "utm_source=" + source + ";path=/";
-        document.cookie = "utm_medium=" + medium + ";path=/";
-        document.cookie = "utm_campaign=" + campaign + ";path=/";
-        document.cookie = "utm_content=" + content + ";path=/";
-        document.cookie = "utm_term=" + term + ";path=/";
-    }
-    
-    // Cookie request function
-    function valor_cookie(nome_cookie) {
-        var cname = ' ' + nome_cookie + '=';
-        
-        var cookies = document.cookie;
-        
-        if (cookies.indexOf(cname) == -1) {
-            return false;
-        }
-        
-        cookies = cookies.substr(cookies.indexOf(cname), cookies.length);
-    
-        if (cookies.indexOf(';') != -1) {
-            cookies = cookies.substr(0, cookies.indexOf(';'));
-        }
-        
-        cookies = cookies.split('=')[1];
-        
-        return decodeURI(cookies);
-    }
-    
-    // Collect and store UTM via cookies
+(function () {
+    // ─── Configuration ────────────────────────────────────────────────────────
+    var UTM_PARAMS   = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+    var COOKIE_DAYS  = 30;   // how long to keep UTM cookies (days)
+    var COOKIE_PATH  = '/';  // share cookies across the whole domain
 
-    $("#utm_source").val(valor_cookie('utm_source'));
-    $("#utm_medium").val(valor_cookie('utm_medium'));
-    $("#utm_campaign").val(valor_cookie('utm_campaign'));
-    $("#utm_term").val(valor_cookie('utm_term'));
-    $("#utm_content").val(valor_cookie('utm_content'));
-    
-});
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the value of a URL query parameter or an empty string.
+     */
+    function getQueryParam(name) {
+        var regex   = new RegExp('[?&]' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^&#]*)');
+        var results = regex.exec(window.location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
+    /**
+     * Sets a cookie with an expiration date.
+     */
+    function setCookie(name, value, days) {
+        var expires = '';
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+            expires = '; expires=' + date.toUTCString();
+        }
+        document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=' + COOKIE_PATH + '; SameSite=Lax';
+    }
+
+    /**
+     * Reads a cookie value by name. Returns the value string or false when absent.
+     */
+    function getCookie(name) {
+        var nameEQ = name + '=';
+        var parts  = document.cookie.split(';');
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i].replace(/^\s+/, '');
+            if (part.indexOf(nameEQ) === 0) {
+                return decodeURIComponent(part.substring(nameEQ.length));
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sets the value of a form field identified by its id attribute.
+     * Works with jQuery (if loaded) or plain DOM.
+     */
+    function setFieldValue(id, value) {
+        if (!value) return;
+        if (typeof $ !== 'undefined') {
+            $('#' + id).val(value);
+        } else {
+            var el = document.getElementById(id);
+            if (el) el.value = value;
+        }
+    }
+
+    // ─── Step 1 – Capture UTM parameters from the current URL ─────────────────
+    // Only runs when the URL actually contains UTM parameters so we never
+    // overwrite a previously cached value with an empty string.
+    if (window.location.search.indexOf('utm_') !== -1) {
+        for (var i = 0; i < UTM_PARAMS.length; i++) {
+            var param = UTM_PARAMS[i];
+            var value = getQueryParam(param);
+            if (value) {
+                setCookie(param, value, COOKIE_DAYS);
+            }
+        }
+    }
+
+    // ─── Step 2 – Populate form fields from the cached cookies ────────────────
+    function populateFormFields() {
+        for (var j = 0; j < UTM_PARAMS.length; j++) {
+            var param = UTM_PARAMS[j];
+            setFieldValue(param, getCookie(param));
+        }
+    }
+
+    // Run after the DOM is ready, compatible with and without jQuery
+    if (typeof $ !== 'undefined') {
+        $(document).ready(populateFormFields);
+    } else if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', populateFormFields);
+    } else {
+        populateFormFields();
+    }
+}());
